@@ -21,7 +21,7 @@ To accomplish this goal I need:
 ## Usage
 
 ```elixir
-ExAVR.Arduino.upload_hex("foo/ar/binary.compiled.hex", "ttyACM0", :uno)
+ExAVR.Arduino.upload_hex("foo/bar/binary.compiled.hex", "ttyACM0", :uno)
 ```
 
 **IMPORTANT! The hex file has to be compiled to match the target hardware**

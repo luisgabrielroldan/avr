@@ -25,15 +25,15 @@ defmodule ExAVR.Helper do
     do: {:error, {:mismatch, offset}}
 
   @doc """
-  Read `n_bytes` bytes from the UART. 
+  Read at least `min_bytes` bytes from the UART. 
   The caller is blocked until all the bytes are available or the timeout expired.
   """
-  @spec read_bytes(GenServer.server(), n_bytes :: non_neg_integer, timeout :: non_neg_integer) ::
+  @spec read_bytes(GenServer.server(), min_bytes :: non_neg_integer, timeout :: non_neg_integer) ::
           {:ok, binary()} | {:error, term()}
-  def read_bytes(uart, n_bytes, timeout \\ 1000),
-    do: do_read(uart, n_bytes, timeout, <<>>)
+  def read_bytes(uart, min_bytes, timeout \\ 1000) when is_integer(min_bytes) and min_bytes > 0,
+    do: do_read(uart, min_bytes, timeout, <<>>)
 
-  defp do_read(uart, n_bytes, timeout, buffer) do
+  defp do_read(uart, min_bytes, timeout, buffer) do
     call_time = System.monotonic_time(:millisecond)
 
     case UART.read(uart, timeout) do
@@ -41,11 +41,11 @@ defmodule ExAVR.Helper do
         elapsed = System.monotonic_time(:millisecond) - call_time
         buffer = <<buffer::binary, data::binary>>
 
-        if byte_size(buffer) >= n_bytes do
+        if byte_size(buffer) >= min_bytes do
           {:ok, buffer}
         else
           if elapsed < timeout do
-            do_read(uart, n_bytes, timeout - elapsed, buffer)
+            do_read(uart, min_bytes, timeout - elapsed, buffer)
           else
             {:ok, buffer}
           end
