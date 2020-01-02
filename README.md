@@ -1,4 +1,5 @@
-# avr
+# AVR
+[![CircleCI](https://circleci.com/gh/luisgabrielroldan/avr.svg?style=svg)](https://circleci.com/gh/luisgabrielroldan/avr)
 
 AVR Firmware Uploader (Only Arduino targets are supported).
 
