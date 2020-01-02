@@ -1,4 +1,4 @@
-# ex_avr
+# avr
 
 AVR Firmware Uploader (Only Arduino targets are supported).
 
@@ -21,10 +21,10 @@ To accomplish this goal I need:
 ## Usage
 
 ```elixir
-ExAVR.Arduino.upload_hex("foo/bar/binary.compiled.hex", "ttyACM0", :uno)
+AVR.upload("foo/bar/binary.compiled.hex", "ttyACM0", :uno)
 ```
 
-**IMPORTANT! The hex file has to be compiled to match the target hardware**
+**IMPORTANT! The hex file has to be compiled to match the target hardware (MCU and Clock speed)**
 
 ## Supported boards:
  - `:uno`: Arduino Uno
@@ -36,17 +36,17 @@ ExAVR.Arduino.upload_hex("foo/bar/binary.compiled.hex", "ttyACM0", :uno)
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `ex_avr` to your list of dependencies in `mix.exs`:
+by adding `avr` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:ex_avr, "~> 0.1.0"}
+    {:avr, "~> 0.1.0"}
   ]
 end
 ```
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/ex_avr](https://hexdocs.pm/ex_avr).
+be found at [https://hexdocs.pm/avr](https://hexdocs.pm/avr).
 
