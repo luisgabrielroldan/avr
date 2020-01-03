@@ -32,7 +32,7 @@ defmodule AVR.Flasher do
         end
       after
         impl.close(pgm)
-        Logger.debug("ExAVR: Connection closed.")
+        Logger.debug("AVR: Connection closed.")
       end
     end
   end
@@ -56,7 +56,7 @@ defmodule AVR.Flasher do
   end
 
   defp verify_ihex(ihex, impl, pgm, page_size) do
-    Logger.debug("ExAVR: Verifying on-chip flash data...")
+    Logger.debug("AVR: Verifying on-chip flash data...")
 
     ihex
     |> IHex.to_regions()
