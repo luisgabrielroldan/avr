@@ -1,10 +1,10 @@
 defmodule AVR.Programmer.Stk500 do
   @moduledoc false
 
+  alias Circuits.UART
   alias AVR.Programmer, as: PGM
-  alias AVR.Connection.UART
 
-  import AVR.Helpers, only: [with_retry: 2]
+  import AVR.Helpers, only: [with_retry: 2, read_min_bytes: 3]
   import Kernel, except: [send: 2]
 
   @behaviour AVR.Programmer
@@ -104,14 +104,12 @@ defmodule AVR.Programmer.Stk500 do
   end
 
   def open(%PGM{} = pgm, port_name, opts \\ []) do
-    %{conn: conn} = pgm
-
     port_opts = [
       speed: opts[:speed] || @default_speed,
       active: false
     ]
 
-    case conn.open(port_name, port_opts) do
+    case open_port(port_name, port_opts) do
       {:ok, port} ->
         pgm = %{pgm | port: port}
 
@@ -136,21 +134,21 @@ defmodule AVR.Programmer.Stk500 do
 
   def close(%PGM{} = pgm) do
     with :ok <- leave_prog_mode(pgm) do
-      pgm.conn.close(pgm.port)
+      close_port(pgm.port)
 
       :ok
     end
   end
 
-  def send(%PGM{conn: conn, port: port}, data) do
-    case conn.send(port, data) do
+  def send(%PGM{port: port}, data) do
+    case UART.write(port, data) do
       :ok -> :ok
       {:error, reason} -> {:error, {:send, reason}}
     end
   end
 
-  def drain(%PGM{conn: conn, port: port}) do
-    case conn.drain(port) do
+  def drain(%PGM{port: port}) do
+    case UART.drain(port) do
       :ok -> :ok
       {:error, reason} -> {:error, {:drain, reason}}
     end
@@ -175,8 +173,8 @@ defmodule AVR.Programmer.Stk500 do
     end
   end
 
-  def init_pgm(opts \\ []) do
-    {:ok, %PGM{conn: opts[:conn] || UART}}
+  def init_pgm(_opts \\ []) do
+    {:ok, %PGM{}}
   end
 
   def enter_prog_mode(%PGM{} = pgm) do
@@ -209,6 +207,20 @@ defmodule AVR.Programmer.Stk500 do
     else
       {:error, reason} ->
         {:error, {:leave_prog_mode, reason}}
+    end
+  end
+
+  def open_port(port_name, opts) do
+    with {:ok, ref} <- UART.start_link(),
+         :ok <- UART.open(ref, port_name, opts) do
+      {:ok, ref}
+    end
+  end
+
+  def close_port(ref) do
+    with :ok <- UART.close(ref),
+         :ok <- UART.stop(ref) do
+      :ok
     end
   end
 
@@ -337,7 +349,7 @@ defmodule AVR.Programmer.Stk500 do
   end
 
   defp recv_result(pgm, expected_size \\ 0) do
-    case pgm.conn.read_min_bytes(pgm.port, 2 + expected_size, 1000) do
+    case read_min_bytes(pgm.port, 2 + expected_size, 1000) do
       {:ok, <<@resp_insync, data::binary-size(expected_size), @resp_ok, _::binary>>} ->
         {:ok, data}
 

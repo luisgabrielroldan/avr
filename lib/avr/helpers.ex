@@ -1,8 +1,6 @@
 defmodule AVR.Helpers do
   @moduledoc false
 
-  alias AVR.Programmer
-
   @doc """
   Compare two binaries and return `:equal` if they are equal or an error if they are different.
   """
@@ -28,15 +26,20 @@ defmodule AVR.Helpers do
   Read at least `min_bytes` bytes from the UART. 
   The caller is blocked until all the bytes are available or the timeout expired.
   """
-  @spec read_bytes(Programmer.t(), min_bytes :: non_neg_integer, timeout :: non_neg_integer) ::
+  @spec read_min_bytes(
+          port :: GenServer.server(),
+          min_bytes :: pos_integer(),
+          timeout :: non_neg_integer()
+        ) ::
           {:ok, binary()} | {:error, term()}
-  def read_bytes(pgm, min_bytes, timeout \\ 1000) when is_integer(min_bytes) and min_bytes > 0,
-    do: do_read(pgm, min_bytes, timeout, <<>>)
+  def read_min_bytes(port, min_bytes, timeout \\ 1000)
+      when is_integer(min_bytes) and min_bytes > 0,
+      do: do_read(port, min_bytes, timeout, <<>>)
 
-  defp do_read(pgm, min_bytes, timeout, buffer) do
+  defp do_read(port, min_bytes, timeout, buffer) do
     call_time = System.monotonic_time(:millisecond)
 
-    case pgm.conn.read(pgm.port, timeout) do
+    case Circuits.UART.read(port, timeout) do
       {:ok, data} ->
         elapsed = System.monotonic_time(:millisecond) - call_time
         buffer = <<buffer::binary, data::binary>>
@@ -45,7 +48,7 @@ defmodule AVR.Helpers do
           {:ok, buffer}
         else
           if elapsed < timeout do
-            do_read(pgm, min_bytes, timeout - elapsed, buffer)
+            do_read(port, min_bytes, timeout - elapsed, buffer)
           else
             {:ok, buffer}
           end

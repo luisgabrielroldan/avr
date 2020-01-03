@@ -3,8 +3,7 @@ defmodule AVR.Programmer do
 
   alias AVR.Board
 
-  defstruct conn: nil,
-            port: nil
+  defstruct port: nil
 
   @programmers [
     arduino: AVR.Programmer.Arduino,
@@ -12,7 +11,6 @@ defmodule AVR.Programmer do
   ]
 
   @type t :: %__MODULE__{
-          conn: module(),
           port: term()
         }
 

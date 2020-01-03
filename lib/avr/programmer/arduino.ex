@@ -3,6 +3,7 @@ defmodule AVR.Programmer.Arduino do
 
   @behaviour AVR.Programmer
 
+  alias Circuits.UART
   alias AVR.Programmer, as: PGM
   alias AVR.Programmer.Stk500
 
@@ -16,14 +17,12 @@ defmodule AVR.Programmer.Arduino do
   defdelegate read_sig_bytes(pgm), to: Stk500
 
   def open(%PGM{} = pgm, port_name, opts \\ []) do
-    %{conn: conn} = pgm
-
     port_opts = [
       speed: opts[:speed] || @default_speed,
       active: false
     ]
 
-    case conn.open(port_name, port_opts) do
+    case Stk500.open_port(port_name, port_opts) do
       {:ok, port} ->
         pgm = %{pgm | port: port}
 
@@ -50,7 +49,7 @@ defmodule AVR.Programmer.Arduino do
   def close(%PGM{} = pgm) do
     case set_dtr_rts(pgm, false) do
       :ok ->
-        pgm.conn.close(pgm.port)
+        Stk500.close_port(pgm.port)
         :ok
 
       {:error, _} = error ->
@@ -68,9 +67,9 @@ defmodule AVR.Programmer.Arduino do
     end
   end
 
-  defp set_dtr_rts(%{conn: conn, port: port}, state) do
-    with :ok <- conn.set_dtr(port, state),
-         :ok <- conn.set_rts(port, state) do
+  defp set_dtr_rts(%{port: port}, state) do
+    with :ok <- UART.set_dtr(port, state),
+         :ok <- UART.set_rts(port, state) do
       :ok
     end
   end
