@@ -1,4 +1,4 @@
-defmodule ExAVR.IHex do
+defmodule AVR.IHex do
   @moduledoc false
 
   use Bitwise
@@ -9,6 +9,14 @@ defmodule ExAVR.IHex do
     defstruct buffer: nil, type: nil, nextaddr: nil, eof: nil, baseaddr: nil, startaddr: nil
   end
 
+  @type baseaddr :: non_neg_integer()
+  @type region :: {baseaddr(), binary()}
+
+  @type t :: %__MODULE__{
+          regions: [region()]
+        }
+
+  @spec parse_file(hex_path :: String.t(), opts :: Keyword.t()) :: {:ok, t()} | {:error, term()}
   def parse_file(hex_path, opts \\ []) do
     try do
       baseaddr = opts[:baseaddr] || 0
@@ -34,9 +42,11 @@ defmodule ExAVR.IHex do
     end
   end
 
+  @spec to_regions(ihex :: t()) :: [region()]
   def to_regions(%__MODULE__{regions: regions}),
     do: regions
 
+  @spec size(ihex :: t()) :: non_neg_integer()
   def size(%__MODULE__{regions: regions}),
     do: Enum.reduce(regions, 0, fn {_, data}, acc -> acc + byte_size(data) end)
 

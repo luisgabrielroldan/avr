@@ -1,7 +1,7 @@
-defmodule ExAVR.IHexTest do
+defmodule AVR.IHexTest do
   use ExUnit.Case
 
-  alias ExAVR.IHex
+  alias AVR.IHex
 
   @test_file "test/fixtures/test.simple.hex"
   @blink_file "test/fixtures/blink.atmega328p.hex"

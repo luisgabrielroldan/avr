@@ -1,7 +1,7 @@
-defmodule ExAVR.Helper do
+defmodule AVR.Helpers do
   @moduledoc false
 
-  alias Circuits.UART
+  alias AVR.Programmer
 
   @doc """
   Compare two binaries and return `:equal` if they are equal or an error if they are different.
@@ -28,15 +28,15 @@ defmodule ExAVR.Helper do
   Read at least `min_bytes` bytes from the UART. 
   The caller is blocked until all the bytes are available or the timeout expired.
   """
-  @spec read_bytes(GenServer.server(), min_bytes :: non_neg_integer, timeout :: non_neg_integer) ::
+  @spec read_bytes(Programmer.t(), min_bytes :: non_neg_integer, timeout :: non_neg_integer) ::
           {:ok, binary()} | {:error, term()}
-  def read_bytes(uart, min_bytes, timeout \\ 1000) when is_integer(min_bytes) and min_bytes > 0,
-    do: do_read(uart, min_bytes, timeout, <<>>)
+  def read_bytes(pgm, min_bytes, timeout \\ 1000) when is_integer(min_bytes) and min_bytes > 0,
+    do: do_read(pgm, min_bytes, timeout, <<>>)
 
-  defp do_read(uart, min_bytes, timeout, buffer) do
+  defp do_read(pgm, min_bytes, timeout, buffer) do
     call_time = System.monotonic_time(:millisecond)
 
-    case UART.read(uart, timeout) do
+    case pgm.conn.read(pgm.port, timeout) do
       {:ok, data} ->
         elapsed = System.monotonic_time(:millisecond) - call_time
         buffer = <<buffer::binary, data::binary>>
@@ -45,7 +45,7 @@ defmodule ExAVR.Helper do
           {:ok, buffer}
         else
           if elapsed < timeout do
-            do_read(uart, min_bytes, timeout - elapsed, buffer)
+            do_read(pgm, min_bytes, timeout - elapsed, buffer)
           else
             {:ok, buffer}
           end
@@ -55,4 +55,20 @@ defmodule ExAVR.Helper do
         error
     end
   end
+
+  def with_retry(attempts, fun),
+    do: with_retry(attempts, fun, nil)
+
+  def with_retry(attempts_left, fun, _error) when attempts_left > 0 do
+    case fun.() do
+      {:retry, error} ->
+        with_retry(attempts_left - 1, fun, error)
+
+      {:done, result} ->
+        result
+    end
+  end
+
+  def with_retry(_attempts_left, _fun, error),
+    do: error
 end
