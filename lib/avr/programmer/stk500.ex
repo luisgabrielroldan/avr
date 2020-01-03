@@ -10,12 +10,13 @@ defmodule AVR.Programmer.Stk500 do
   @behaviour AVR.Programmer
 
   @default_speed 115_200
-  @max_sync_attempts 10
-  @max_enter_progmode_attempts 20
+  @max_cmd_retries 10
 
   @sync_crc_eop 0x20
 
   @cmd_get_sync 0x30
+  @cmd_set_parameter 0x40
+  @cmd_get_parameter 0x41
   @cmd_enter_progmode 0x50
   @cmd_leave_progmode 0x51
   @cmd_load_address 0x55
@@ -25,8 +26,94 @@ defmodule AVR.Programmer.Stk500 do
   @cmd_read_sign 0x75
 
   @resp_ok 0x10
+  @resp_failed 0x10
   @resp_insync 0x14
   @resp_noinsync 0x15
+
+  @parameters [
+    hw_ver: 0x80,
+    sw_major: 0x81,
+    sw_minor: 0x82,
+    leds: 0x83,
+    vtarget: 0x84,
+    vadjust: 0x85,
+    osc_pscale: 0x86,
+    osc_cmatch: 0x87,
+    reset_duration: 0x88,
+    sck_duration: 0x89,
+    bufsizel: 0x90,
+    bufsizeh: 0x91,
+    device: 0x92,
+    progmode: 0x93,
+    paramode: 0x94,
+    polling: 0x95,
+    selftimed: 0x96,
+    topcard_detect: 0x98
+  ]
+
+  def get_param(%PGM{} = pgm, param) do
+    case Keyword.get(@parameters, param) do
+      nil ->
+        {:error, :param_name}
+
+      param_id ->
+        cmd = <<@cmd_get_parameter, param_id, @sync_crc_eop>>
+
+        with_retry(@max_cmd_retries, fn ->
+          with :ok <- send(pgm, cmd),
+               {:ok, <<value>>} <- recv_result(pgm, 1) do
+            {:done, {:ok, value}}
+          else
+            {:error, :no_sync} = error ->
+              case get_sync(pgm) do
+                :ok ->
+                  {:retry, error}
+
+                error ->
+                  {:done, error}
+              end
+
+            {:error, {:failed, _}} ->
+              {:done, {:error, :failed}}
+
+            _ ->
+              {:retry, {:error, :get_param}}
+          end
+        end)
+    end
+  end
+
+  def set_param(%PGM{} = pgm, param, value) do
+    case Keyword.get(@parameters, param) do
+      nil ->
+        {:error, :param_name}
+
+      param_id ->
+        cmd = <<@cmd_set_parameter, param_id, value, @sync_crc_eop>>
+
+        with_retry(@max_cmd_retries, fn ->
+          with :ok <- send(pgm, cmd),
+               :ok <- recv_ok(pgm) do
+            {:done, :ok}
+          else
+            {:error, :no_sync} = error ->
+              case get_sync(pgm) do
+                :ok ->
+                  {:retry, error}
+
+                error ->
+                  {:done, error}
+              end
+
+            {:error, {:failed, _}} ->
+              {:done, {:error, :failed}}
+
+            _ ->
+              {:retry, {:error, :set_param}}
+          end
+        end)
+    end
+  end
 
   def paged_read(%PGM{} = pgm, page_size, {mem, baseaddr}, n_bytes)
       when is_integer(baseaddr) and is_integer(n_bytes) do
@@ -100,7 +187,13 @@ defmodule AVR.Programmer.Stk500 do
   end
 
   def initialize(%PGM{} = pgm) do
-    enter_prog_mode(pgm)
+    with :ok <- enter_prog_mode(pgm),
+         {:ok, sw_major} <- get_param(pgm, :sw_major),
+         {:ok, sw_minor} <- get_param(pgm, :sw_minor) do
+      meta = Keyword.put(pgm.meta, :sw_version, {sw_major, sw_minor})
+
+      {:ok, %{pgm | meta: meta}}
+    end
   end
 
   def open(%PGM{} = pgm, port_name, opts \\ []) do
@@ -161,7 +254,7 @@ defmodule AVR.Programmer.Stk500 do
          :ok <- drain(pgm),
          :ok <- send(pgm, cmd),
          :ok <- drain(pgm) do
-      with_retry(@max_sync_attempts, fn ->
+      with_retry(@max_cmd_retries, fn ->
         with :ok <- send(pgm, cmd),
              :ok <- recv_ok(pgm) do
           {:done, :ok}
@@ -180,7 +273,7 @@ defmodule AVR.Programmer.Stk500 do
   def enter_prog_mode(%PGM{} = pgm) do
     cmd = <<@cmd_enter_progmode, @sync_crc_eop>>
 
-    with_retry(@max_enter_progmode_attempts, fn ->
+    with_retry(@max_cmd_retries, fn ->
       with :ok <- send(pgm, cmd),
            :ok <- recv_ok(pgm) do
         {:done, :ok}
@@ -195,7 +288,7 @@ defmodule AVR.Programmer.Stk500 do
           end
 
         _ ->
-          {:retry, {:error, :get_sync}}
+          {:retry, {:error, :enter_prog_mode}}
       end
     end)
   end
@@ -225,7 +318,7 @@ defmodule AVR.Programmer.Stk500 do
   end
 
   defp read_page_from_addr(pgm, page_size, mem, addr) do
-    with_retry(10, fn ->
+    with_retry(@max_cmd_retries, fn ->
       with :ok <- load_address(pgm, mem, addr),
            {:ok, page_data} <- read_page(pgm, page_size, mem) do
         {:done, {:ok, page_data}}
@@ -265,7 +358,7 @@ defmodule AVR.Programmer.Stk500 do
   end
 
   defp write_page_in_addr(pgm, page_size, mem, addr, page_data) do
-    with_retry(10, fn ->
+    with_retry(@max_cmd_retries, fn ->
       with :ok <- load_address(pgm, mem, addr),
            :ok <- write_page(pgm, page_size, mem, page_data) do
         {:done, {:ok, addr + byte_size(page_data)}}
@@ -352,6 +445,9 @@ defmodule AVR.Programmer.Stk500 do
     case read_min_bytes(pgm.port, 2 + expected_size, 1000) do
       {:ok, <<@resp_insync, data::binary-size(expected_size), @resp_ok, _::binary>>} ->
         {:ok, data}
+
+      {:ok, <<@resp_insync, value::8, @resp_failed, _::binary>>} ->
+        {:error, {:failed, value}}
 
       {:ok, <<@resp_noinsync, _>>} ->
         {:error, :no_sync}

@@ -3,7 +3,7 @@ defmodule AVR.Programmer do
 
   alias AVR.Board
 
-  defstruct port: nil
+  defstruct port: nil, meta: []
 
   @programmers [
     arduino: AVR.Programmer.Arduino,
@@ -11,7 +11,8 @@ defmodule AVR.Programmer do
   ]
 
   @type t :: %__MODULE__{
-          port: term()
+          port: term(),
+          meta: Keyword.t()
         }
 
   @type id :: :arduino | :stk500
@@ -42,7 +43,7 @@ defmodule AVR.Programmer do
   @callback cmd(pgm :: t(), cmd :: cmd()) ::
               {:ok, cmd_result()} | {:error, term()}
 
-  @callback initialize(pgm :: t()) :: :ok | {:error, term()}
+  @callback initialize(pgm :: t()) :: {:ok, t()} | {:error, term()}
 
   @callback open(pgm :: t(), port_name :: String.t(), opts :: Keyword.t()) ::
               {:ok, t()} | {:error, term()}

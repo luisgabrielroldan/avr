@@ -12,6 +12,8 @@ defmodule AVR.Programmer.Arduino do
   defdelegate paged_read(pgm, page_size, addr, n_bytes), to: Stk500
   defdelegate paged_write(pgm, page_size, addr, data), to: Stk500
   defdelegate cmd(pgm, cmd), to: Stk500
+  defdelegate get_param(pgm, param), to: Stk500
+  defdelegate set_param(pgm, param, value), to: Stk500
   defdelegate initialize(pgm), to: Stk500
   defdelegate init_pgm(opts \\ []), to: Stk500
   defdelegate read_sig_bytes(pgm), to: Stk500

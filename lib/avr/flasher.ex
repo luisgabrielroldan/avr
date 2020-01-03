@@ -22,18 +22,22 @@ defmodule AVR.Flasher do
   def upload(%IHex{} = ihex, port, board_id, opts) do
     with {:ok, board} <- Board.lookup(board_id),
          {:ok, impl, pgm} <- open(port, board, opts) do
-      try do
-        mem_settings = Board.mem_settings(board, :flash)
-        page_size = mem_settings[:page_size] || 128
+      do_upload(ihex, impl, pgm, board)
+    end
+  end
 
-        with :ok <- write_ihex(ihex, impl, pgm, page_size),
-             :ok <- verify_ihex(ihex, impl, pgm, page_size) do
-          :ok
-        end
-      after
-        impl.close(pgm)
-        Logger.debug("AVR: Connection closed.")
+  defp do_upload(ihex, impl, pgm, board) do
+    try do
+      mem_settings = Board.mem_settings(board, :flash)
+      page_size = mem_settings[:page_size] || 128
+
+      with :ok <- write_ihex(ihex, impl, pgm, page_size),
+           :ok <- verify_ihex(ihex, impl, pgm, page_size) do
+        :ok
       end
+    after
+      impl.close(pgm)
+      Logger.debug("AVR: Connection closed.")
     end
   end
 
@@ -102,7 +106,7 @@ defmodule AVR.Flasher do
              "in #{port} at speed #{opts[:speed]}."
          ),
          {:ok, pgm} <- impl.open(pgm, port, opts),
-         :ok <- impl.initialize(pgm) do
+         {:ok, pgm} <- impl.initialize(pgm) do
       {:ok, impl, pgm}
     end
   end
