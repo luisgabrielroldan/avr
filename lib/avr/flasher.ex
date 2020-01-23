@@ -13,6 +13,29 @@ defmodule AVR.Flasher do
 
   @default_programmer :arduino
 
+  @doc """
+  Verifies if the firmware is already loaded on the device.
+  If the device firmware is different the hex will be uploaded.
+  """
+  def update(hex_path, port, board_id, opts) when is_binary(hex_path) do
+    with {:ok, ihex} <- load_ihex(hex_path, opts) do
+      update(ihex, port, board_id, opts)
+    end
+  end
+
+  def update(%IHex{} = ihex, port, board_id, opts) do
+    case verify(ihex, port, board_id, opts) do
+      :ok ->
+        :ok
+
+      {:error, {:mismatch, _}} ->
+        upload(ihex, port, board_id, opts)
+    end
+  end
+
+  @doc """
+  Uploads the firmware to the device
+  """
   def upload(hex_path, port, board_id, opts) when is_binary(hex_path) do
     with {:ok, ihex} <- load_ihex(hex_path, opts) do
       upload(ihex, port, board_id, opts)
@@ -23,6 +46,30 @@ defmodule AVR.Flasher do
     with {:ok, board} <- Board.lookup(board_id),
          {:ok, impl, pgm} <- open(port, board, opts) do
       do_upload(ihex, impl, pgm, board)
+    end
+  end
+
+  @doc """
+  Reads and verifies the firmware to the device
+  """
+  def verify(hex_path, port, board_id, opts) when is_binary(hex_path) do
+    with {:ok, ihex} <- load_ihex(hex_path, opts) do
+      verify(ihex, port, board_id, opts)
+    end
+  end
+
+  def verify(%IHex{} = ihex, port, board_id, opts) do
+    with {:ok, board} <- Board.lookup(board_id),
+         {:ok, impl, pgm} <- open(port, board, opts) do
+      try do
+        mem_settings = Board.mem_settings(board, :flash)
+        page_size = mem_settings[:page_size] || 128
+
+        verify_ihex(ihex, impl, pgm, page_size)
+      after
+        impl.close(pgm)
+        Logger.debug("AVR: Connection closed.")
+      end
     end
   end
 

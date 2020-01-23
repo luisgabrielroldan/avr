@@ -1,6 +1,8 @@
 defmodule AVR.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+
   def project do
     [
       app: :avr,
@@ -8,16 +10,50 @@ defmodule AVR.MixProject do
       elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      description: description(),
+      docs: docs(),
+      package: package(),
+      source_url: "https://github.com/luisgabrielroldan/avr",
       dialyzer: [
         flags: [:error_handling, :race_conditions, :underspecs]
       ]
     ]
   end
 
+  defp description do
+    """
+    AVR is a library to upload a firmware into AVR microcontrollers
+    """
+  end
+
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
       extra_applications: [:logger]
+    ]
+  end
+
+  defp package do
+    %{
+      files: ["lib", "mix.exs", "README.md"],
+      maintainers: [
+        "Gabriel Roldan"
+      ],
+      licenses: ["Apache License 2.0"],
+      links: %{
+        "GitHub" => "https://github.com/luisgabrielroldan/avr"
+      }
+    }
+  end
+
+  defp docs do
+    [
+      main: "readme",
+      source_ref: "v#{@version}",
+      source_url: "https://github.com/luisgabrielroldan/avr",
+      extras: [
+        "README.md"
+      ]
     ]
   end
 

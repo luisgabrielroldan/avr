@@ -1,6 +1,6 @@
 defmodule AVR do
   @moduledoc """
-  Documentation for AVR.
+  AVR is a library to upload a firmware into AVR microcontrollers
   """
 
   alias AVR.{IHex, Programmer}
@@ -19,6 +19,15 @@ defmodule AVR do
           {:programmer, Programmer.id()}
         ]
 
+  @spec update(
+          hex :: String.t() | IHex.t(),
+          port :: String.t(),
+          board :: board_type(),
+          opts :: upload_opts
+        ) :: :ok | {:error, term()}
+
+  defdelegate update(hex, port, board, opts \\ []), to: AVR.Flasher
+
   @spec upload(
           hex :: String.t() | IHex.t(),
           port :: String.t(),
@@ -27,4 +36,13 @@ defmodule AVR do
         ) :: :ok | {:error, term()}
 
   defdelegate upload(hex, port, board, opts \\ []), to: AVR.Flasher
+
+  @spec verify(
+          hex :: String.t() | IHex.t(),
+          port :: String.t(),
+          board :: board_type(),
+          opts :: upload_opts
+        ) :: :ok | {:error, term()}
+
+  defdelegate verify(hex, port, board, opts \\ []), to: AVR.Flasher
 end
