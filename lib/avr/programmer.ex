@@ -3,7 +3,7 @@ defmodule AVR.Programmer do
 
   alias AVR.Board
 
-  defstruct port: nil, meta: []
+  defstruct port: nil, meta: [], gpio_reset: nil
 
   @programmers [
     arduino: AVR.Programmer.Arduino,
@@ -12,7 +12,8 @@ defmodule AVR.Programmer do
 
   @type t :: %__MODULE__{
           port: term(),
-          meta: Keyword.t()
+          meta: Keyword.t(),
+          gpio_reset: nil | reference()
         }
 
   @type id :: :arduino | :stk500
@@ -21,6 +22,9 @@ defmodule AVR.Programmer do
   @type signature :: <<_::24, _::_*8>>
   @type cmd :: <<_::32, _::_*8>>
   @type cmd_result :: <<_::32, _::_*8>>
+
+  @type pgm_opt :: {:gpio_reset, non_neg_integer()}
+  @type opts :: [pgm_opt]
 
   @callback paged_read(
               pgm :: t(),

@@ -3,7 +3,7 @@ defmodule AVR.Programmer.Arduino do
 
   @behaviour AVR.Programmer
 
-  alias Circuits.UART
+  alias Circuits.{GPIO, UART}
   alias AVR.Programmer, as: PGM
   alias AVR.Programmer.Stk500
 
@@ -24,6 +24,49 @@ defmodule AVR.Programmer.Arduino do
       active: false
     ]
 
+    with {:ok, pgm} <- handle_gpio_reset(pgm, opts),
+         {:ok, pgm} <- open_port(pgm, port_name, port_opts) do
+      {:ok, pgm}
+    end
+  end
+
+  def close(%PGM{} = pgm) do
+    case reset(pgm) do
+      :ok ->
+        case pgm do
+          %{gpio_reset: nil} -> nil
+          %{gpio_reset: ref} -> GPIO.close(ref)
+        end
+
+        case pgm do
+          %{port: nil} -> nil
+          %{port: port} -> Stk500.close_port(port)
+        end
+
+        :ok
+
+      error ->
+        error
+    end
+  end
+
+  defp handle_gpio_reset(pgm, opts) do
+    case opts[:gpio_reset] do
+      pin when is_integer(pin) ->
+        case GPIO.open(pin, :output) do
+          {:ok, gpio_reset} ->
+            {:ok, %{pgm | gpio_reset: gpio_reset}}
+
+          {:error, reason} ->
+            {:error, {:gpio_reset, reason}}
+        end
+
+      _ ->
+        {:ok, pgm}
+    end
+  end
+
+  defp open_port(pgm, port_name, port_opts) do
     case Stk500.open_port(port_name, port_opts) do
       {:ok, port} ->
         pgm = %{pgm | port: port}
@@ -44,30 +87,37 @@ defmodule AVR.Programmer.Arduino do
         end
 
       error ->
-        error
-    end
-  end
+        close(pgm)
 
-  def close(%PGM{} = pgm) do
-    case set_dtr_rts(pgm, false) do
-      :ok ->
-        Stk500.close_port(pgm.port)
-        :ok
-
-      {:error, _} = error ->
         error
     end
   end
 
   defp reset(pgm) do
-    with :ok <- set_dtr_rts(pgm, false),
+    reset_fun = get_reset_fun(pgm)
+
+    with :ok <- reset_fun.(pgm, false),
          :timer.sleep(250),
-         :ok <- set_dtr_rts(pgm, true),
+         :ok <- reset_fun.(pgm, true),
          :timer.sleep(50),
          :ok <- Stk500.drain(pgm) do
       :ok
     end
   end
+
+  defp get_reset_fun(%{gpio_reset: nil}) do
+    fn p, v -> set_dtr_rts(p, v) end
+  end
+
+  defp get_reset_fun(%{gpio_reset: gpio_reset}) do
+    fn
+      _p, true -> GPIO.write(gpio_reset, 1)
+      _p, false -> GPIO.write(gpio_reset, 0)
+    end
+  end
+
+  defp set_dtr_rts(%{port: nil}, _state),
+    do: :ok
 
   defp set_dtr_rts(%{port: port}, state) do
     with :ok <- UART.set_dtr(port, state),
