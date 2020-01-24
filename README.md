@@ -1,5 +1,6 @@
 # AVR
 [![CircleCI](https://circleci.com/gh/luisgabrielroldan/avr.svg?style=svg)](https://circleci.com/gh/luisgabrielroldan/avr)
+[![Hex version](https://img.shields.io/hexpm/v/avr.svg "Hex version")](https://hex.pm/packages/avr)
 
 AVR Firmware Uploader (Only Arduino targets are supported).
 
