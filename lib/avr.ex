@@ -16,7 +16,8 @@ defmodule AVR do
 
   @type upload_opts :: [
           {:speed, non_neg_integer()},
-          {:programmer, Programmer.id()}
+          {:programmer, Programmer.id()},
+          {:gpio_reset, non_neg_integer()}
         ]
 
   @spec update(

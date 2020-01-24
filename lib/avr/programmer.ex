@@ -23,9 +23,6 @@ defmodule AVR.Programmer do
   @type cmd :: <<_::32, _::_*8>>
   @type cmd_result :: <<_::32, _::_*8>>
 
-  @type pgm_opt :: {:gpio_reset, non_neg_integer()}
-  @type opts :: [pgm_opt]
-
   @callback paged_read(
               pgm :: t(),
               page_size :: non_neg_integer(),

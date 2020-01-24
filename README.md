@@ -35,6 +35,20 @@ AVR.upload("foo/bar/binary.compiled.hex", "ttyACM0", :uno)
  - `:atmega328`: Generic ATmega328
  - `:atmega328p`: Generic ATmega328P
 
+## Auto-reset
+
+Arduino boards needs to be reseted to enable the programing mode. The reset is performed automatically using the DTR line when the board is connected by USB.
+
+To use the RPi hardware serial port you need to configure a GPIO pin to work as a reset line using the `gpio_reset` option:
+
+```elixir
+AVR.upload("foo/bar/binary.compiled.hex", "ttyACM0", :uno, gpio_reset: 4)
+```
+
+On this case, the `GPIO04` will be connected to the reset pin.
+
+**NOTE:** The reset works putting the RESET pint to LOW for a few milliseconds. For this reason you have to use the GPIOs with pull-up resistors (GPIO0-GPIO8).
+
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
