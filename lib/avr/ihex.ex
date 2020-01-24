@@ -6,6 +6,7 @@ defmodule AVR.IHex do
   defstruct regions: nil
 
   defmodule State do
+    @moduledoc false
     defstruct buffer: nil, type: nil, nextaddr: nil, eof: nil, baseaddr: nil, startaddr: nil
   end
 

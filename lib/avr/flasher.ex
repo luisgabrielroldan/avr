@@ -1,5 +1,7 @@
 defmodule AVR.Flasher do
-  @moduledoc false
+  @moduledoc """
+  Provides the basic functionality for upload/download/verify the device firmware
+  """
 
   alias AVR.{
     Board,
