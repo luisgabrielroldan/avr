@@ -83,6 +83,12 @@ defmodule AVR.Flasher do
       with :ok <- write_ihex(ihex, impl, pgm, page_size),
            :ok <- verify_ihex(ihex, impl, pgm, page_size) do
         :ok
+      else
+        {:error, {:mismatch, addr}} ->
+          {:error, {:verify, addr}}
+
+        error ->
+          error
       end
     after
       impl.close(pgm)
@@ -131,7 +137,7 @@ defmodule AVR.Flasher do
                 }."
               )
 
-              {:halt, {:error, {:verify, address}}}
+              {:halt, {:error, {:mismatch, address}}}
           end
 
         error ->
