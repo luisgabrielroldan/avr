@@ -1,12 +1,12 @@
 defmodule AVR.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.1.1"
 
   def project do
     [
       app: :avr,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
