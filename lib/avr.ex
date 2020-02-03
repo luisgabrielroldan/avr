@@ -14,11 +14,12 @@ defmodule AVR do
           | :pro8MHzatmega328p
           | :pro16MHzatmega328p
 
-  @type upload_opts :: [
-          {:speed, non_neg_integer()},
-          {:programmer, Programmer.id()},
-          {:gpio_reset, non_neg_integer()}
-        ]
+  @type upload_opt ::
+          {:speed, non_neg_integer()}
+          | {:programmer, Programmer.id()}
+          | {:gpio_reset, non_neg_integer()}
+
+  @type upload_opts :: [upload_opt]
 
   @spec update(
           hex :: String.t() | IHex.t(),
