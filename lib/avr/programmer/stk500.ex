@@ -240,6 +240,9 @@ defmodule AVR.Programmer.Stk500 do
     end
   end
 
+  def drain(%PGM{port: nil}),
+    do: :ok
+
   def drain(%PGM{port: port}) do
     case UART.drain(port) do
       :ok -> :ok
