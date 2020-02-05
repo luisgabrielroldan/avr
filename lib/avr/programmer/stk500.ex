@@ -307,17 +307,21 @@ defmodule AVR.Programmer.Stk500 do
   end
 
   def open_port(port_name, opts) do
-    with {:ok, ref} <- UART.start_link(),
-         :ok <- UART.open(ref, port_name, opts) do
-      {:ok, ref}
+    {:ok, ref} = UART.start_link()
+
+    case UART.open(ref, port_name, opts) do
+      :ok ->
+        {:ok, ref}
+
+      error ->
+        UART.stop(ref)
+
+        error
     end
   end
 
   def close_port(ref) do
-    with :ok <- UART.close(ref),
-         :ok <- UART.stop(ref) do
-      :ok
-    end
+    UART.stop(ref)
   end
 
   defp read_page_from_addr(pgm, page_size, mem, addr) do

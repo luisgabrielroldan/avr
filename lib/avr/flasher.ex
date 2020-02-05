@@ -28,10 +28,19 @@ defmodule AVR.Flasher do
   def update(%IHex{} = ihex, port, board_id, opts) do
     case verify(ihex, port, board_id, opts) do
       :ok ->
-        :ok
+        {:ok, :unchanged}
 
       {:error, {:mismatch, _}} ->
-        upload(ihex, port, board_id, opts)
+        case upload(ihex, port, board_id, opts) do
+          :ok ->
+            {:ok, :updated}
+
+          error ->
+            error
+        end
+
+      error ->
+        error
     end
   end
 
@@ -160,16 +169,22 @@ defmodule AVR.Flasher do
            "AVR: Connecting to board #{board.id} (#{board.mcu}) " <>
              "in #{port} at speed #{opts[:speed]}."
          ),
-         {:ok, pgm} <- impl.open(pgm, port, opts),
-         {:ok, pgm} <- impl.initialize(pgm) do
-      {:ok, impl, pgm}
+         {:ok, pgm} <- impl.open(pgm, port, opts) do
+      case impl.initialize(pgm) do
+        {:ok, pgm} ->
+          {:ok, impl, pgm}
+
+        error ->
+          impl.close(pgm)
+
+          error
+      end
     end
   end
 
   defp load_ihex(hex_path, _opts) do
     case IHex.parse_file(hex_path) do
       {:ok, _} = res ->
-        Logger.debug("AVR: Hex file loaded: \"#{hex_path}\".")
         res
 
       error ->

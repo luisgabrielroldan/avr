@@ -31,23 +31,19 @@ defmodule AVR.Programmer.Arduino do
   end
 
   def close(%PGM{} = pgm) do
-    case reset(pgm) do
-      :ok ->
-        case pgm do
-          %{gpio_reset: nil} -> nil
-          %{gpio_reset: ref} -> GPIO.close(ref)
-        end
+    reset(pgm)
 
-        case pgm do
-          %{port: nil} -> nil
-          %{port: port} -> Stk500.close_port(port)
-        end
-
-        :ok
-
-      error ->
-        error
+    case pgm do
+      %{gpio_reset: nil} -> nil
+      %{gpio_reset: ref} -> GPIO.close(ref)
     end
+
+    case pgm do
+      %{port: nil} -> nil
+      %{port: port} -> Stk500.close_port(port)
+    end
+
+    :ok
   end
 
   defp handle_gpio_reset(pgm, opts) do

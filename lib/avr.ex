@@ -26,7 +26,7 @@ defmodule AVR do
           port :: String.t(),
           board :: board_type(),
           opts :: upload_opts
-        ) :: :ok | {:error, term()}
+        ) :: {:ok, :updated | :unchanged} | {:error, term()}
 
   defdelegate update(hex, port, board, opts \\ []), to: AVR.Flasher
 
